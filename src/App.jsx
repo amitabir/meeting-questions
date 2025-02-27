@@ -1,13 +1,16 @@
-// Import icons from Lucide
-const { PlusCircle, ChevronDown, ChevronUp, Trash2, Save, FileText } = lucide;
+import React from 'react';
+import { 
+  PlusCircle, 
+  ChevronDown, 
+  ChevronUp, 
+  Trash2, 
+  FileText 
+} from 'lucide-react';
+import { useMeetings } from './hooks/useMeetings';
 
 // Main App Component
 function WeddingVenueMeetingManager() {
-  // State for meetings
-  const [meetings, setMeetings] = React.useState(() => {
-    const savedMeetings = localStorage.getItem('weddingVenueMeetings');
-    return savedMeetings ? JSON.parse(savedMeetings) : [];
-  });
+  const { meetings, loading, error, createMeeting, updateMeeting, deleteMeeting } = useMeetings();
   
   // State for currently selected meeting
   const [currentMeetingId, setCurrentMeetingId] = React.useState(null);
@@ -71,91 +74,120 @@ function WeddingVenueMeetingManager() {
     }
   ];
 
-  // Save meetings to localStorage whenever they change
-  React.useEffect(() => {
-    localStorage.setItem('weddingVenueMeetings', JSON.stringify(meetings));
-  }, [meetings]);
-
   // Create a new meeting
-  const createNewMeeting = () => {
-    const newId = Date.now().toString();
+  const handleCreateNewMeeting = async () => {
     const newMeeting = {
-      id: newId,
       venueName: 'New Venue',
       date: new Date().toISOString().split('T')[0],
       notes: '',
       categories: JSON.parse(JSON.stringify(defaultCategories)) // Deep copy
     };
     
-    setMeetings([...meetings, newMeeting]);
-    setCurrentMeetingId(newId);
-  };
-
-  // Get current meeting
-  const currentMeeting = meetings.find(m => m.id === currentMeetingId);
-
-  // Toggle expanded state for a category
-  const [expandedCategories, setExpandedCategories] = React.useState({});
-  const toggleCategory = (categoryName) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryName]: !prev[categoryName]
-    }));
+    try {
+      const newId = await createMeeting(newMeeting);
+      setCurrentMeetingId(newId);
+    } catch (err) {
+      console.error('Failed to create meeting:', err);
+    }
   };
 
   // Handle checkbox change
-  const handleQuestionAsked = (categoryIndex, questionIndex, checked) => {
-    const updatedMeetings = [...meetings];
-    const meetingIndex = updatedMeetings.findIndex(m => m.id === currentMeetingId);
-    updatedMeetings[meetingIndex].categories[categoryIndex].questions[questionIndex].asked = checked;
-    setMeetings(updatedMeetings);
+  const handleQuestionAsked = async (categoryIndex, questionIndex, checked) => {
+    if (!currentMeetingId) return;
+    
+    const currentMeeting = meetings.find(m => m.id === currentMeetingId);
+    if (!currentMeeting) return;
+
+    const updatedMeeting = { ...currentMeeting };
+    updatedMeeting.categories[categoryIndex].questions[questionIndex].asked = checked;
+    
+    try {
+      await updateMeeting(currentMeetingId, updatedMeeting);
+    } catch (err) {
+      console.error('Failed to update question:', err);
+    }
   };
 
   // Handle answer change
-  const handleAnswerChange = (categoryIndex, questionIndex, answer) => {
-    const updatedMeetings = [...meetings];
-    const meetingIndex = updatedMeetings.findIndex(m => m.id === currentMeetingId);
-    updatedMeetings[meetingIndex].categories[categoryIndex].questions[questionIndex].answer = answer;
-    setMeetings(updatedMeetings);
+  const handleAnswerChange = async (categoryIndex, questionIndex, answer) => {
+    if (!currentMeetingId) return;
+    
+    const currentMeeting = meetings.find(m => m.id === currentMeetingId);
+    if (!currentMeeting) return;
+
+    const updatedMeeting = { ...currentMeeting };
+    updatedMeeting.categories[categoryIndex].questions[questionIndex].answer = answer;
+    
+    try {
+      await updateMeeting(currentMeetingId, updatedMeeting);
+    } catch (err) {
+      console.error('Failed to update answer:', err);
+    }
   };
 
   // Update meeting venue name
-  const updateVenueName = (name) => {
-    const updatedMeetings = [...meetings];
-    const meetingIndex = updatedMeetings.findIndex(m => m.id === currentMeetingId);
-    updatedMeetings[meetingIndex].venueName = name;
-    setMeetings(updatedMeetings);
+  const updateVenueName = async (name) => {
+    if (!currentMeetingId) return;
+    
+    const currentMeeting = meetings.find(m => m.id === currentMeetingId);
+    if (!currentMeeting) return;
+
+    const updatedMeeting = { ...currentMeeting, venueName: name };
+    
+    try {
+      await updateMeeting(currentMeetingId, updatedMeeting);
+    } catch (err) {
+      console.error('Failed to update venue name:', err);
+    }
   };
 
   // Update meeting date
-  const updateMeetingDate = (date) => {
-    const updatedMeetings = [...meetings];
-    const meetingIndex = updatedMeetings.findIndex(m => m.id === currentMeetingId);
-    updatedMeetings[meetingIndex].date = date;
-    setMeetings(updatedMeetings);
+  const updateMeetingDate = async (date) => {
+    if (!currentMeetingId) return;
+    
+    const currentMeeting = meetings.find(m => m.id === currentMeetingId);
+    if (!currentMeeting) return;
+
+    const updatedMeeting = { ...currentMeeting, date };
+    
+    try {
+      await updateMeeting(currentMeetingId, updatedMeeting);
+    } catch (err) {
+      console.error('Failed to update date:', err);
+    }
   };
 
   // Update meeting notes
-  const updateMeetingNotes = (notes) => {
-    const updatedMeetings = [...meetings];
-    const meetingIndex = updatedMeetings.findIndex(m => m.id === currentMeetingId);
-    updatedMeetings[meetingIndex].notes = notes;
-    setMeetings(updatedMeetings);
+  const updateMeetingNotes = async (notes) => {
+    if (!currentMeetingId) return;
+    
+    const currentMeeting = meetings.find(m => m.id === currentMeetingId);
+    if (!currentMeeting) return;
+
+    const updatedMeeting = { ...currentMeeting, notes };
+    
+    try {
+      await updateMeeting(currentMeetingId, updatedMeeting);
+    } catch (err) {
+      console.error('Failed to update notes:', err);
+    }
   };
 
   // Add a new question
-  const addNewQuestion = () => {
-    if (!newQuestionText.trim()) return;
+  const addNewQuestion = async () => {
+    if (!newQuestionText.trim() || !currentMeetingId) return;
     
-    const updatedMeetings = [...meetings];
-    const meetingIndex = updatedMeetings.findIndex(m => m.id === currentMeetingId);
-    const categoryIndex = updatedMeetings[meetingIndex].categories.findIndex(
+    const currentMeeting = meetings.find(m => m.id === currentMeetingId);
+    if (!currentMeeting) return;
+
+    const updatedMeeting = { ...currentMeeting };
+    const categoryIndex = updatedMeeting.categories.findIndex(
       c => c.name === newQuestionCategory
     );
     
     if (categoryIndex === -1) {
       // Create new category if it doesn't exist
-      updatedMeetings[meetingIndex].categories.push({
+      updatedMeeting.categories.push({
         name: newQuestionCategory,
         questions: [{
           id: Date.now().toString(),
@@ -166,7 +198,7 @@ function WeddingVenueMeetingManager() {
       });
     } else {
       // Add to existing category
-      updatedMeetings[meetingIndex].categories[categoryIndex].questions.push({
+      updatedMeeting.categories[categoryIndex].questions.push({
         id: Date.now().toString(),
         text: newQuestionText,
         asked: false,
@@ -174,26 +206,59 @@ function WeddingVenueMeetingManager() {
       });
     }
     
-    setMeetings(updatedMeetings);
-    setNewQuestionText('');
-    
-    // Expand the category where the question was added
-    setExpandedCategories(prev => ({
-      ...prev,
-      [newQuestionCategory]: true
-    }));
+    try {
+      await updateMeeting(currentMeetingId, updatedMeeting);
+      setNewQuestionText('');
+      setExpandedCategories(prev => ({
+        ...prev,
+        [newQuestionCategory]: true
+      }));
+    } catch (err) {
+      console.error('Failed to add question:', err);
+    }
   };
 
   // Delete a meeting
-  const deleteMeeting = (meetingId) => {
+  const handleDeleteMeeting = async (meetingId) => {
     if (confirm('Are you sure you want to delete this meeting?')) {
-      const updatedMeetings = meetings.filter(m => m.id !== meetingId);
-      setMeetings(updatedMeetings);
-      if (currentMeetingId === meetingId) {
-        setCurrentMeetingId(updatedMeetings.length > 0 ? updatedMeetings[0].id : null);
+      try {
+        await deleteMeeting(meetingId);
+        if (currentMeetingId === meetingId) {
+          setCurrentMeetingId(meetings.length > 0 ? meetings[0].id : null);
+        }
+      } catch (err) {
+        console.error('Failed to delete meeting:', err);
       }
     }
   };
+
+  // Toggle expanded state for a category
+  const [expandedCategories, setExpandedCategories] = React.useState({});
+  const toggleCategory = (categoryName) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryName]: !prev[categoryName]
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-xl text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-xl text-red-600">Error: {error}</div>
+      </div>
+    );
+  }
+
+  // Get current meeting
+  const currentMeeting = meetings.find(m => m.id === currentMeetingId);
 
   // Render meeting list view
   if (!currentMeetingId) {
@@ -206,7 +271,7 @@ function WeddingVenueMeetingManager() {
         
         <div className="mb-6">
           <button 
-            onClick={createNewMeeting}
+            onClick={handleCreateNewMeeting}
             className="flex items-center bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition"
           >
             <PlusCircle className="mr-2" size={18} />
@@ -225,7 +290,7 @@ function WeddingVenueMeetingManager() {
                 <div className="flex justify-between items-start mb-2">
                   <h2 className="text-xl font-semibold text-gray-800">{meeting.venueName}</h2>
                   <button 
-                    onClick={() => deleteMeeting(meeting.id)}
+                    onClick={() => handleDeleteMeeting(meeting.id)}
                     className="text-red-500 hover:text-red-700 p-1"
                   >
                     <Trash2 size={16} />
@@ -281,7 +346,7 @@ function WeddingVenueMeetingManager() {
         </div>
         <div>
           <button 
-            onClick={() => deleteMeeting(currentMeeting.id)}
+            onClick={() => handleDeleteMeeting(currentMeeting.id)}
             className="text-red-500 hover:text-red-700 p-2"
             title="Delete meeting"
           >
@@ -405,3 +470,5 @@ function WeddingVenueMeetingManager() {
     </div>
   );
 }
+
+export default WeddingVenueMeetingManager;
