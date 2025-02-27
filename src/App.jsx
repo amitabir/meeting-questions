@@ -7,10 +7,13 @@ import {
   FileText 
 } from 'lucide-react';
 import { useMeetings } from './hooks/useMeetings';
+import { useLanguage } from './contexts/LanguageContext.jsx';
+import { LanguageToggle } from './components/LanguageToggle.jsx';
 
 // Main App Component
 function WeddingVenueMeetingManager() {
   const { meetings, loading, error, createMeeting, updateMeeting, deleteMeeting } = useMeetings();
+  const { t, direction } = useLanguage();
   
   // State for currently selected meeting
   const [currentMeetingId, setCurrentMeetingId] = React.useState(null);
@@ -77,10 +80,16 @@ function WeddingVenueMeetingManager() {
   // Create a new meeting
   const handleCreateNewMeeting = async () => {
     const newMeeting = {
-      venueName: 'New Venue',
+      venueName: t('newVenue'),
       date: new Date().toISOString().split('T')[0],
       notes: '',
-      categories: JSON.parse(JSON.stringify(defaultCategories)) // Deep copy
+      categories: defaultCategories.map(cat => ({
+        name: cat.name,
+        questions: cat.questions.map(q => ({
+          ...q,
+          text: t(q.text, 'defaultQuestions')
+        }))
+      }))
     };
     
     try {
@@ -263,10 +272,11 @@ function WeddingVenueMeetingManager() {
   // Render meeting list view
   if (!currentMeetingId) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex flex-col">
+      <div className="min-h-screen bg-gray-50 p-6 flex flex-col" dir={direction}>
+        <LanguageToggle />
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Wedding Venue Meeting Manager</h1>
-          <p className="text-gray-600">Manage and track your venue meetings in one place</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('title')}</h1>
+          <p className="text-gray-600">{t('subtitle')}</p>
         </header>
         
         <div className="mb-6">
@@ -274,14 +284,14 @@ function WeddingVenueMeetingManager() {
             onClick={handleCreateNewMeeting}
             className="flex items-center bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition"
           >
-            <PlusCircle className="mr-2" size={18} />
-            Start New Meeting
+            <PlusCircle className={`${direction === 'rtl' ? 'ml-2' : 'mr-2'}`} size={18} />
+            {t('newMeeting')}
           </button>
         </div>
         
         {meetings.length === 0 ? (
           <div className="text-center p-10 bg-white rounded shadow">
-            <p className="text-gray-600 mb-4">No meetings yet. Click the button above to create your first meeting.</p>
+            <p className="text-gray-600 mb-4">{t('noMeetings')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -301,14 +311,14 @@ function WeddingVenueMeetingManager() {
                   {meeting.categories.reduce((total, cat) => 
                     total + cat.questions.filter(q => q.asked).length, 0)} / {
                     meeting.categories.reduce((total, cat) => 
-                      total + cat.questions.length, 0)} questions asked
+                      total + cat.questions.length, 0)} {t('questionsAsked')}
                 </div>
                 <button 
                   onClick={() => setCurrentMeetingId(meeting.id)}
                   className="flex items-center justify-center w-full bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200 transition"
                 >
-                  <FileText className="mr-2" size={16} />
-                  Open Meeting
+                  <FileText className={`${direction === 'rtl' ? 'ml-2' : 'mr-2'}`} size={16} />
+                  {t('openMeeting')}
                 </button>
               </div>
             ))}
@@ -320,21 +330,23 @@ function WeddingVenueMeetingManager() {
 
   // Render meeting detail view
   return (
-    <div className="min-h-screen bg-gray-50 p-4 flex flex-col">
+    <div className="min-h-screen bg-gray-50 p-4 flex flex-col" dir={direction}>
+      <LanguageToggle />
       <header className="mb-6 flex justify-between items-center">
         <div>
           <button 
             onClick={() => setCurrentMeetingId(null)}
-            className="text-gray-600 hover:text-gray-800 mb-2"
+            className="text-gray-600 hover:text-gray-800 mb-2 flex items-center"
           >
-            ← Back to meetings
+            <span>{t('backToMeetings')}</span>
           </button>
-          <div className="flex items-center space-x-4">
+          <div className={`flex items-center ${direction === 'rtl' ? 'space-x-reverse' : ''} space-x-4`}>
             <input
               type="text"
               value={currentMeeting.venueName}
               onChange={e => updateVenueName(e.target.value)}
               className="text-2xl font-bold border-0 border-b-2 border-gray-200 focus:border-purple-500 focus:ring-0 bg-transparent"
+              dir={direction}
             />
             <input
               type="date"
@@ -348,7 +360,7 @@ function WeddingVenueMeetingManager() {
           <button 
             onClick={() => handleDeleteMeeting(currentMeeting.id)}
             className="text-red-500 hover:text-red-700 p-2"
-            title="Delete meeting"
+            title={t('deleteConfirm')}
           >
             <Trash2 size={20} />
           </button>
@@ -357,55 +369,53 @@ function WeddingVenueMeetingManager() {
       
       {/* Add Question Form */}
       <div className="bg-white rounded shadow mb-6 p-4">
-        <h2 className="text-lg font-medium mb-2">Add a new question</h2>
-        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
-          <input
-            type="text"
-            value={newQuestionText}
-            onChange={e => setNewQuestionText(e.target.value)}
-            placeholder="Enter your question"
-            className="flex-1 border border-gray-300 rounded p-2"
-          />
-          <div className="flex space-x-2">
+        <h2 className="text-lg font-medium mb-2">{t('addNewQuestion')}</h2>
+        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0">
+          <div className={`flex-1 ${direction === 'rtl' ? 'ml-2' : 'mr-2'}`}>
+            <input
+              type="text"
+              value={newQuestionText}
+              onChange={e => setNewQuestionText(e.target.value)}
+              placeholder={t('enterQuestion')}
+              className="w-full border border-gray-300 rounded p-2"
+              dir={direction}
+            />
+          </div>
+          <div className={`flex ${direction === 'rtl' ? 'space-x-reverse' : ''} space-x-2`}>
             <select
               value={newQuestionCategory}
               onChange={e => setNewQuestionCategory(e.target.value)}
               className="border border-gray-300 rounded p-2"
+              dir={direction}
             >
               {currentMeeting.categories.map(cat => (
-                <option key={cat.name} value={cat.name}>{cat.name}</option>
+                <option key={cat.name} value={cat.name}>
+                  {t(cat.name, 'categories')}
+                </option>
               ))}
-              <option value="Other">Other (New Category)</option>
+              <option value="Other">{t('Other', 'categories')}</option>
             </select>
             <button 
               onClick={addNewQuestion}
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition flex items-center"
             >
-              <PlusCircle className="mr-1" size={16} />
-              Add
+              <PlusCircle className={`${direction === 'rtl' ? 'ml-1' : 'mr-1'}`} size={16} />
+              {t('addQuestion')}
             </button>
           </div>
         </div>
-        {newQuestionCategory === 'Other' && (
-          <input
-            type="text"
-            value={newQuestionCategory === 'Other' ? '' : newQuestionCategory}
-            onChange={e => setNewQuestionCategory(e.target.value)}
-            placeholder="Enter new category name"
-            className="mt-2 border border-gray-300 rounded p-2 w-full"
-          />
-        )}
       </div>
       
       {/* Meeting Notes */}
       <div className="bg-white rounded shadow mb-6 p-4">
-        <h2 className="text-lg font-medium mb-2">Meeting Notes</h2>
+        <h2 className="text-lg font-medium mb-2">{t('meetingNotes')}</h2>
         <textarea
           value={currentMeeting.notes}
           onChange={e => updateMeetingNotes(e.target.value)}
-          placeholder="Write your general notes here..."
+          placeholder={t('notesPlaceholder')}
           className="w-full min-h-32 border border-gray-300 rounded p-2"
           rows={6}
+          dir={direction}
         />
       </div>
       
@@ -418,8 +428,8 @@ function WeddingVenueMeetingManager() {
               onClick={() => toggleCategory(category.name)}
             >
               <h2 className="text-lg font-medium">
-                {category.name} 
-                <span className="ml-2 text-sm text-gray-500">
+                {t(category.name, 'categories')}
+                <span className={`${direction === 'rtl' ? 'mr-2' : 'ml-2'} text-sm text-gray-500`}>
                   ({category.questions.filter(q => q.asked).length}/{category.questions.length})
                 </span>
               </h2>
@@ -443,18 +453,19 @@ function WeddingVenueMeetingManager() {
                             type="checkbox"
                             checked={question.asked}
                             onChange={e => handleQuestionAsked(categoryIndex, questionIndex, e.target.checked)}
-                            className="mt-1 mr-3"
+                            className={`mt-1 ${direction === 'rtl' ? 'ml-3' : 'mr-3'}`}
                           />
                           <div className="flex-1">
                             <p className={`${question.asked ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                              {question.text}
+                              {t(question.text, 'defaultQuestions')}
                             </p>
                             <textarea
                               value={question.answer}
                               onChange={e => handleAnswerChange(categoryIndex, questionIndex, e.target.value)}
-                              placeholder="Enter answer here..."
+                              placeholder={t('answerPlaceholder')}
                               className="mt-2 w-full border border-gray-300 rounded p-2"
                               rows={2}
+                              dir={direction}
                             />
                           </div>
                         </div>
